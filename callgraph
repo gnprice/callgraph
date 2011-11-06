@@ -1,0 +1,68 @@
+#!/usr/bin/python
+# usage: callgraph <foo.c >foo.dot
+
+import re
+import sys
+
+
+def analyze(infile):
+    refs = {}
+    fun = None
+    current_refs = None
+    for line in infile.readlines():
+        if line[-1] == '\n':
+            line = line[:-1]
+        if fun is not None:
+            if line.startswith('}'):
+                if fun in refs:
+#                    print >>sys.stderr, "warning: duplicate function definition, combining:", fun
+                    current_refs = refs[fun].union(current_refs)
+                refs[fun] = current_refs
+                fun = None
+                current_refs = None
+            else:
+                for ident in re.findall('[a-zA-Z_][a-zA-Z0-9_]*', line):
+                    current_refs.add(ident)
+        else:
+            m = re.search('^(?:[a-zA-Z_][ a-zA-Z_]*\s)?([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', line)
+            name = m and m.group(1)
+            if name and not line.endswith(';') and not '=' in line:
+                fun = name
+                current_refs = set()
+#                print >>sys.stderr, 'info: start %s at %s' % (name.upper(), line)
+
+    return refs
+
+
+def print_simple(refs):
+    funs = set(refs.keys())
+    for f, calls in refs.iteritems():
+#        print f, 'ALL', ' '.join(c for c in calls)
+        print f, ' '.join(c for c in calls if c in funs)
+
+
+def print_dot(refs):
+    funs = set(refs.keys())
+    print 'strict digraph calls {'
+    print '  rankdir=LR;'
+    print '  rotate=90;'
+    print '  size="10,8";'
+    print '  center=1;'
+    for f, calls in sorted(refs.iteritems()):
+        print '  %s;' % (f,)
+        for c in calls:
+            if c in funs:
+                print '  %s -> %s;' % (f, c)
+    print '}'
+
+
+def main(args):
+    if args:
+        return 1
+
+    refs = analyze(sys.stdin)
+    print_dot(refs)
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))
