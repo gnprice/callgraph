@@ -65,6 +65,12 @@ def print_dot(refs, nonstatic):
         for c in calls:
             if c in funs:
                 print '  %s -> %s;' % (f, c)
+    print '  "-break" [style="invis" label="" width=0 height=0];'
+    for f in refs.iterkeys():
+        if f in nonstatic:
+            print '  %s -> "-break" [style="invis"];' % (f,)
+        else:
+            print '  "-break" -> %s [style="invis"];' % (f,)
     print '}'
 
 
