@@ -1,0 +1,9 @@
+Usage: callgraph <foo.c >foo.dot
+(then dot -Tps <foo.dot >foo.ps)
+
+Reads the input as (idiomatic) C code, heuristically, and graphs
+functions defined and calls made between those functions.
+
+Functions which might be called from outside of the file,
+i.e. non-static functions, are highlighted with a box and
+pulled out to the left-hand side.
