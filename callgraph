@@ -1,5 +1,16 @@
 #!/usr/bin/python
-# usage: callgraph <foo.c >foo.dot
+
+'''\
+usage: callgraph <foo.c >foo.dot
+(then dot -Tps <foo.dot >foo.ps)
+
+Reads the input as (idiomatic) C code, heuristically, and graphs
+functions defined and calls made between those functions.
+Non-static functions are indicated.
+
+The whole output is scaled to one page; if that becomes too small,
+edit 'scale' below.  (Or make it a command-line option...)
+'''
 
 import re
 import sys
@@ -52,21 +63,27 @@ def print_simple(refs):
 
 
 def print_dot(refs, nonstatic):
-    funs = set(refs.keys())
+    scale = (1, 1) # pages
+    size = (scale[0] * 11 - 1, scale[1] * 8.5 - 1) # inches; letter, 1" margins
     print 'strict digraph calls {'
     print '  rankdir=LR;'
-#    print '  ranksep=0;'
+    print '  size="%f,%f";' % size
+    print '  ratio=fill;'
     print '  rotate=90;'
-    print '  size="10,8";'
     print '  center=1;'
+    print '  margin=0;'
+    print '  page="8.5,11";'
+    funs = set(refs.keys())
     for f, calls in sorted(refs.iteritems()):
         shape = 'box' if f in nonstatic else 'plaintext'
         print '  %s [shape=%s];' % (f, shape)
         for c in calls:
             if c in funs:
                 print '  %s -> %s;' % (f, c)
+    # Separate non-static functions on the left from static ones on the right.
+    # The dummy node's name is not a legal C identifier, to avoid conflicts.
     print '  "-break" [style="invis" label="" width=0 height=0];'
-    for f in refs.iterkeys():
+    for f in funs:
         if f in nonstatic:
             print '  %s -> "-break" [style="invis"];' % (f,)
         else:
@@ -76,6 +93,7 @@ def print_dot(refs, nonstatic):
 
 def main(args):
     if args:
+        print >>sys.stderr, "error: arguments"
         return 1
 
     refs, nonstatic = analyze(sys.stdin)
